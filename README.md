@@ -2,6 +2,8 @@
 
 This is a [CircuitPython](https://circuitpython.org) helper library for communicating over MIDI. This library is intentionally minimal and low-level. It's just enough to make using the [`PortIn`](https://circuitpython.readthedocs.io/en/latest/shared-bindings/usb_midi/PortIn.html) bearable. If you are looking for a high-level, beginner-friendly MIDI library please look at [Adafruit CircuitPython MIDI](https://github.com/adafruit/Adafruit_CircuitPython_MIDI).
 
+It's also **experimental** at this point. While I've verified it works for my boards, my controllers, and my DAWs, I haven't been able to test it broadly enough to feel confident it'll work with other setups. If you use it and run into issues, please file a bug and let me know!
+
 ## Usage
 
 Create a `MidiIn` instance using a `PortIn` instance:
@@ -38,7 +40,7 @@ while True:
 
 ### System exclusive messages
 
-This library has basic for system exclusive messages. To get a system exclusive message you must check for the `SYSEX` message and then call `receive_sysex` to get the data for the payload. If you don't call `receive_sysex` the payload will be discarded on the next call to `receive`. `receive_sysex` requires you to pass the maximum number of bytes to read from the payload. Any remaining bytes will be discarded.
+This library has basic support for system exclusive messages. To get a system exclusive message you must check for the `SYSEX` message and then call `receive_sysex` to get the data for the payload. If you don't call `receive_sysex` the payload will be discarded on the next call to `receive`. `receive_sysex` requires you to pass the maximum number of bytes to read from the payload. Any remaining bytes will be discarded.
 
 ```python
 while True:
