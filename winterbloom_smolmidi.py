@@ -70,11 +70,10 @@ def _is_channel_message(status_byte):
 
 
 def _read_n_bytes(port, buf, dest, num_bytes):
-    bytes_read = 0
-    while bytes_read < num_bytes:
-        bytes_filled = port.readinto(buf, num_bytes - bytes_read)
-        dest.extend(buf[:bytes_filled])
-        bytes_read += bytes_filled
+    while num_bytes:
+        if port.readinto(buf, 1):
+            dest.append(buf[0])
+            num_bytes -= 1
 
 
 class Message:
@@ -92,11 +91,17 @@ class Message:
 
 
 class MidiIn:
-    def __init__(self, port):
+    def __init__(self, port, enable_running_status=False):
         self._port = port
         self._read_buf = bytearray(3)
+        self._running_status_enabled = enable_running_status
         self._running_status = None
         self._outstanding_sysex = False
+        self._error_count = 0
+
+    @property
+    def error_count(self):
+        return self._error_count
 
     def receive(self):
         # Before we do anything, check and see if there's an unprocessed
@@ -121,12 +126,13 @@ class MidiIn:
 
         # If not, see if we have a running status byte.
         if not is_status:
-            if self._running_status:
+            if self._running_status_enabled and self._running_status:
                 data_bytes = [status_byte]
                 status_byte = self._running_status
             # If not a status byte and no running status, this is
             # invalid data.
             else:
+                self._error_count += 1
                 return None
 
         # Is this a channel message, if so, let's figure out the right
@@ -152,6 +158,15 @@ class MidiIn:
         # can throw the message away if the user doesn't process it.
         if message.type == SYSEX:
             self._outstanding_sysex = True
+
+        # Check the data bytes for corruption. If the data bytes have any status bytes
+        # embedded, it probably means the buffer overflowed. Either way, discard the
+        # message.
+        # TODO: Figure out a better way to detect and deal with this upstream.
+        for b in data_bytes:
+            if b & 0x80:
+                self._error_count += 1
+                return None
 
         return message
 

@@ -72,6 +72,7 @@ def test_midi_in_invalid_data():
     msg = midi_in.receive()
 
     assert msg is None
+    assert midi_in.error_count == 1
 
 
 def test_midi_in_no_data():
@@ -115,7 +116,7 @@ def test_midi_in_two_data_bytes():
 def test_midi_in_running_status():
     # A port with a Note On message followed by another with running status.
     port = PortStub(iter([smolmidi.NOTE_ON | 0x01, 0x64, 0x42, 0x65, 0x43]))
-    midi_in = smolmidi.MidiIn(port)
+    midi_in = smolmidi.MidiIn(port, enable_running_status=True)
 
     msg = midi_in.receive()
 
@@ -129,6 +130,31 @@ def test_midi_in_running_status():
     assert msg.channel == 0x01
     assert msg.data[0] == 0x65
     assert msg.data[1] == 0x43
+
+
+def test_midi_in_corrupt_stream():
+    # A port with a valid Channel Pressure message, followed by a corrupted one, followed by
+    # another valid one.
+    port = PortStub(iter([
+        smolmidi.CHANNEL_PRESSURE, 0x64,
+        smolmidi.CHANNEL_PRESSURE, 0x81, # 0x81 is a status byte, not a data byte
+        smolmidi.CHANNEL_PRESSURE, 0x65,
+    ]))
+    midi_in = smolmidi.MidiIn(port)
+
+
+    msg1 = midi_in.receive()
+    assert msg1.type == smolmidi.CHANNEL_PRESSURE
+    assert msg1.data[0] == 0x64
+
+    msg2 = midi_in.receive()
+    assert msg2 is None
+
+    msg3 = midi_in.receive()
+    assert msg3.type == smolmidi.CHANNEL_PRESSURE
+    assert msg3.data[0] == 0x65
+
+    assert midi_in.error_count == 1
 
 
 def test_midi_in_sysex_receive():
