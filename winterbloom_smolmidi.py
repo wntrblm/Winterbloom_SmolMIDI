@@ -71,10 +71,9 @@ def _is_channel_message(status_byte):
 
 def _read_n_bytes(port, buf, dest, num_bytes):
     while num_bytes:
-        if port.readinto(buf, 1):
+        if port.readinto(buf):
             dest.append(buf[0])
             num_bytes -= 1
-
 
 class Message:
     def __init__(self):
@@ -93,7 +92,7 @@ class Message:
 class MidiIn:
     def __init__(self, port, enable_running_status=False):
         self._port = port
-        self._read_buf = bytearray(3)
+        self._read_buf = bytearray(1)
         self._running_status_enabled = enable_running_status
         self._running_status = None
         self._outstanding_sysex = False
@@ -111,7 +110,7 @@ class MidiIn:
             self.receive_sysex(0)
 
         # Read the status byte for the next message.
-        result = self._port.readinto(self._read_buf, 1)
+        result = self._port.readinto(self._read_buf)
 
         # No message ready.
         if not result:
@@ -192,7 +191,7 @@ class MidiIn:
         # but sysex messages should be relatively rare in practice,
         # so I'm not sure how much benefit we'll get.
         while length < max_length:
-            self._port.readinto(buf, 1)
+            self._port.readinto(buf)
             if buf[0] == SYSEX_END:
                 break
             out.extend(buf)
@@ -204,6 +203,6 @@ class MidiIn:
             # Ignore the rest of the message by reading and throwing away
             # bytes until we get to SYSEX_END.
             while buf[0] != SYSEX_END:
-                self._port.readinto(buf, 1)
+                self._port.readinto(buf)
 
         return out, truncated
