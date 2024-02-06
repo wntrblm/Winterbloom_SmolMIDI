@@ -10,7 +10,7 @@ class PortStub:
     def __init__(self, data):
         self.data = data
 
-    def readinto(self, buf, numbytes):
+    def readinto(self, buf, numbytes=1):
         bytes_read = 0
         for n in range(numbytes):
             try:
@@ -32,7 +32,7 @@ def test__read_n_bytes_empty():
     dest = []
 
     smolmidi._read_n_bytes(port, buf, dest, 0)
-    
+
     assert dest == []
 
 
@@ -42,7 +42,7 @@ def test__read_n_bytes_full():
     dest = []
 
     smolmidi._read_n_bytes(port, buf, dest, 4)
-    
+
     assert dest == [1, 2, 3, 4]
 
 def test__read_n_bytes_chunked():
@@ -51,7 +51,7 @@ def test__read_n_bytes_chunked():
     dest = []
 
     smolmidi._read_n_bytes(port, buf, dest, 4)
-    
+
     assert dest == [1, 2, 3, 4]
 
 
@@ -181,7 +181,7 @@ def test_midi_sysex_discard():
     assert msg.type == smolmidi.SYSEX
 
     msg = midi_in.receive()
-    
+
     assert msg.type == smolmidi.NOTE_ON
     assert msg.channel == 0x01
     assert msg.data[0] == 0x64
